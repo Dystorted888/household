@@ -10,17 +10,125 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Material Design 3 Color Tokens */
+  --color-primary: #6750a4;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #625b71;
+  --color-secondary-foreground: #ffffff;
+  --color-secondary-container: #e8def8;
+  --color-on-secondary-container: #1d192b;
+  --color-surface: #fef7ff;
+  --color-surface-variant: #e7e0ec;
+  --color-on-surface: #1d1b20;
+  --color-on-surface-variant: #49454f;
+  --color-outline: #79747e;
+  --color-outline-variant: #cac4d0;
+  --color-error: #ba1a1a;
+  --color-error-foreground: #ffffff;
+  --color-on-error: #ffffff;
+
+  /* Legacy shadcn/ui variables for compatibility */
+  --color-card: var(--color-surface);
+  --color-card-foreground: var(--color-on-surface);
+  --color-popover: var(--color-surface);
+  --color-popover-foreground: var(--color-on-surface);
+  --color-primary: var(--color-primary);
+  --color-primary-foreground: var(--color-primary-foreground);
+  --color-secondary: var(--color-secondary);
+  --color-secondary-foreground: var(--color-secondary-foreground);
+  --color-muted: var(--color-surface-variant);
+  --color-muted-foreground: var(--color-on-surface-variant);
+  --color-accent: var(--color-secondary-container);
+  --color-accent-foreground: var(--color-on-secondary-container);
+  --color-destructive: var(--color-error);
+  --color-destructive-foreground: var(--color-error-foreground);
+  --color-border: var(--color-outline-variant);
+  --color-input: var(--color-outline-variant);
+  --color-ring: var(--color-primary);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+
+    /* Material Design 3 Dark Color Tokens */
+    --color-primary: #d0bcff;
+    --color-primary-foreground: #381e72;
+    --color-secondary: #ccc2dc;
+    --color-secondary-foreground: #332d41;
+    --color-secondary-container: #4a4458;
+    --color-on-secondary-container: #e8def8;
+    --color-surface: #141218;
+    --color-surface-variant: #49454f;
+    --color-on-surface: #e6e1e5;
+    --color-on-surface-variant: #cac4d0;
+    --color-outline: #938f99;
+    --color-outline-variant: #49454f;
+    --color-error: #ffb4ab;
+    --color-error-foreground: #690005;
+    --color-on-error: #690005;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Material Design 3 specific styles */
+.md-elevation-0 {
+  box-shadow: none;
+}
+
+.md-elevation-1 {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.md-elevation-2 {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.md-elevation-3 {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.md-elevation-4 {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Smooth transitions for interactive elements */
+* {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Material Design ripple effect */
+.material-ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.material-ripple::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.material-ripple:active::before {
+  width: 300px;
+  height: 300px;
 }

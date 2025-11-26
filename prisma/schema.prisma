@@ -1,0 +1,191 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  MEMBER
+}
+
+enum ShoppingPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum MealStatus {
+  PLANNED
+  DONE
+}
+
+enum TaskType {
+  GENERIC
+  BABY
+  HOUSE
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum RecurringFrequency {
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  CUSTOM
+}
+
+enum BabyItemType {
+  TASK
+  PURCHASE
+}
+
+enum BabyItemStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+model Household {
+  id    String @id @default(cuid())
+  name  String
+
+  users          User[]
+  shoppingLists  ShoppingList[]
+  mealPlanEntries MealPlanEntry[]
+  tasks          Task[]
+  recurringTasks RecurringTask[]
+  babyItems      BabyChecklistItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id          String   @id @default(cuid())
+  name        String
+  email       String?  @unique
+  role        UserRole @default(MEMBER)
+  profile     String?  // e.g. "Husband", "Wife"
+  color       String?  // for avatar/color coding later
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  assignedTasks      Task[]          @relation("AssignedTasks")
+  assignedRecurring  RecurringTask[] @relation("AssignedRecurringTasks")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ShoppingList {
+  id          String   @id @default(cuid())
+  name        String
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  items     ShoppingItem[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ShoppingItem {
+  id        String           @id @default(cuid())
+  listId    String
+  list      ShoppingList     @relation(fields: [listId], references: [id], onDelete: Cascade)
+  name      String
+  quantity  String?
+  category  String?
+  priority  ShoppingPriority @default(MEDIUM)
+  isBought  Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  boughtAt  DateTime?
+
+  babyChecklistItems BabyChecklistItem[] @relation("BabyItemShoppingLink")
+}
+
+model MealPlanEntry {
+  id          String      @id @default(cuid())
+  householdId String
+  household   Household   @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  date        DateTime
+  dayOfWeek   String
+  mealType    String      @default("DINER")
+  label       String
+  status      MealStatus  @default(PLANNED)
+  notes       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([householdId, date])
+}
+
+model Task {
+  id          String      @id @default(cuid())
+  householdId String
+  household   Household   @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  type        TaskType    @default(GENERIC)
+  assignedToUserId String?
+  assignedTo  User?       @relation("AssignedTasks", fields: [assignedToUserId], references: [id])
+  status      TaskStatus  @default(TODO)
+  dueDate     DateTime?
+  createdAt   DateTime    @default(now())
+  completedAt DateTime?
+
+  babyChecklistItems BabyChecklistItem[] @relation("BabyItemTaskLink")
+
+  @@index([householdId, dueDate])
+}
+
+model RecurringTask {
+  id          String             @id @default(cuid())
+  householdId String
+  household   Household          @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  frequency   RecurringFrequency
+  interval    Int?
+  assignedToUserId String?
+  assignedTo  User?              @relation("AssignedRecurringTasks", fields: [assignedToUserId], references: [id])
+  lastOccurrenceAt DateTime?
+  nextOccurrenceAt DateTime
+  isActive   Boolean             @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([householdId, nextOccurrenceAt])
+}
+
+model BabyChecklistItem {
+  id          String          @id @default(cuid())
+  householdId String
+  household   Household       @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  section     String
+  title       String
+  itemType    BabyItemType
+  relatedTaskId String?
+  relatedTask   Task?           @relation("BabyItemTaskLink", fields: [relatedTaskId], references: [id])
+  relatedShoppingItemId String?
+  relatedShoppingItem   ShoppingItem? @relation("BabyItemShoppingLink", fields: [relatedShoppingItemId], references: [id])
+  status      BabyItemStatus   @default(TODO)
+  dueDate     DateTime?
+  createdAt   DateTime         @default(now())
+  completedAt DateTime?
+
+  @@index([householdId, section])
+  @@index([householdId, dueDate])
+}
+
+
