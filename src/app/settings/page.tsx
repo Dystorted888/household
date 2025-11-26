@@ -3,6 +3,8 @@ import { getHouseholdId } from "@/lib/household";
 import { getUsers } from "@/lib/dashboard";
 import { SettingsClient } from "@/components/settings/settings-client";
 
+export const dynamic = 'force-dynamic';
+
 export default async function SettingsPage() {
   const householdId = await getHouseholdId();
   const users = await getUsers(householdId);

@@ -4,6 +4,8 @@ import { getTasksForToday, getTasksForWeek, getRecurringTasks } from "@/lib/task
 import { getUsers } from "@/lib/dashboard";
 import { TasksClient } from "@/components/tasks/tasks-client";
 
+export const dynamic = 'force-dynamic';
+
 export default async function TasksPage() {
   const householdId = await getHouseholdId();
   const todayTasks = await getTasksForToday(householdId);

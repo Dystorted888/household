@@ -3,6 +3,8 @@ import { getHouseholdId } from "@/lib/household";
 import { getShoppingLists, getShoppingItems } from "@/lib/shopping";
 import { ShoppingClient } from "@/components/shopping/shopping-client";
 
+export const dynamic = 'force-dynamic';
+
 export default async function ShoppingPage() {
   const householdId = await getHouseholdId();
   const lists = await getShoppingLists(householdId);

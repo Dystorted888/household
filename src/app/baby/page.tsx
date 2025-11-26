@@ -3,6 +3,8 @@ import { getHouseholdId } from "@/lib/household";
 import { getBabyChecklistItems } from "@/lib/baby";
 import { BabyClient } from "@/components/baby/baby-client";
 
+export const dynamic = 'force-dynamic';
+
 export default async function BabyPage() {
   const householdId = await getHouseholdId();
   const babyItems = await getBabyChecklistItems(householdId);
