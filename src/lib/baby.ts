@@ -6,7 +6,7 @@ import { BABY_SECTIONS } from "./baby/sections";
 export const SECTIONS = BABY_SECTIONS;
 
 export async function getBabyChecklistItems(householdId: string) {
-  // First try with assignedTo relation (if migration has been run)
+  // Try to query with assignedTo relation first (if migration has been run)
   try {
     return await prisma.babyChecklistItem.findMany({
       where: { householdId },
@@ -22,52 +22,40 @@ export async function getBabyChecklistItems(householdId: string) {
       ],
     });
   } catch (error: any) {
-    // If migration hasn't been run, the assignedToUserId column won't exist
-    // Query without the assignedTo relation
+    // If migration hasn't been run, the assignedToUserId column/relation won't exist
+    // Query without the assignedTo relation using raw query or select
     const errorMessage = error?.message || "";
-    if (errorMessage.includes("assignedToUserId") || errorMessage.includes("column") || errorMessage.includes("does not exist")) {
+    if (errorMessage.includes("assignedToUserId") || errorMessage.includes("does not exist") || errorMessage.includes("column")) {
       console.warn("Migration not run yet, querying baby items without assignedTo relation");
-      // Query without assignedTo - use select to explicitly avoid it
-      const items = await prisma.babyChecklistItem.findMany({
-        where: { householdId },
-        select: {
-          id: true,
-          householdId: true,
-          section: true,
-          title: true,
-          itemType: true,
-          status: true,
-          dueDate: true,
-          createdAt: true,
-          completedAt: true,
-          relatedTaskId: true,
-          relatedShoppingItemId: true,
-          relatedTask: {
-            select: {
-              id: true,
-              title: true,
-              status: true,
-            },
-          },
-          relatedShoppingItem: {
-            select: {
-              id: true,
-              name: true,
-              isBought: true,
-            },
-          },
-        },
-        orderBy: [
-          { section: "asc" },
-          { dueDate: "asc" },
-          { createdAt: "asc" },
-        ],
-      });
-      // Map items to match expected shape (without assignedTo)
+      
+      // Use $queryRaw to query without Prisma's relation validation
+      // This avoids the schema validation issue
+      const items = await prisma.$queryRaw<any[]>`
+        SELECT 
+          id, "householdId", section, title, "itemType", status, "dueDate", 
+          "createdAt", "completedAt", "relatedTaskId", "relatedShoppingItemId"
+        FROM "BabyChecklistItem"
+        WHERE "householdId" = ${householdId}
+        ORDER BY section ASC, "dueDate" ASC, "createdAt" ASC
+      `;
+      
+      // Map to match expected shape
       return items.map(item => ({
-        ...item,
+        id: item.id,
+        householdId: item.householdId,
+        section: item.section,
+        title: item.title,
+        itemType: item.itemType,
+        status: item.status,
+        dueDate: item.dueDate ? new Date(item.dueDate) : null,
+        createdAt: new Date(item.createdAt),
+        completedAt: item.completedAt ? new Date(item.completedAt) : null,
+        relatedTaskId: item.relatedTaskId,
+        relatedShoppingItemId: item.relatedShoppingItemId,
         assignedTo: null,
         assignedToUserId: null,
+        relatedTask: null,
+        relatedShoppingItem: null,
       }));
     }
     // If it's a different error, rethrow it
