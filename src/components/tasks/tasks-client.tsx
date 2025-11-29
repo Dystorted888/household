@@ -12,8 +12,12 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { CheckSquare, Calendar, RotateCcw, User as UserIcon, Menu } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
-import { CreateTaskModal } from "./create-task-modal";
-import type { Task, RecurringTask, User } from "@prisma/client";
+import { TaskFormDialog } from "./create-task-modal";
+import type { Task, RecurringTask, TaskType, User } from "@prisma/client";
+
+type TaskWithUser = Task & { assignedTo?: User | null };
+type TaskStatusFilter = "all" | "TODO" | "IN_PROGRESS" | "DONE";
+type TaskTypeFilter = "all" | TaskType;
 
 interface TasksClientProps {
   initialTodayTasks: (Task & { assignedTo?: User | null })[];
@@ -32,10 +36,14 @@ export function TasksClient({
   const [weekTasks, setWeekTasks] = useState(initialWeekTasks);
   const [recurringTasks, setRecurringTasks] = useState(initialRecurringTasks);
 
-  const [filter, setFilter] = useState({
-    status: "all" as "all" | "todo" | "in_progress" | "done",
-    type: "all" as "all" | "GENERIC" | "BABY" | "HOUSE",
-    assignee: "all" as string,
+  const [filter, setFilter] = useState<{
+    status: TaskStatusFilter;
+    type: TaskTypeFilter;
+    assignee: string;
+  }>({
+    status: "all",
+    type: "all",
+    assignee: "all",
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -64,7 +72,7 @@ export function TasksClient({
     }
   };
 
-  const filterTasks = (tasks: any[]) => {
+  const filterTasks = (tasks: TaskWithUser[]) => {
     return tasks.filter(task => {
       if (filter.status !== "all" && task.status !== filter.status) return false;
       if (filter.type !== "all" && task.type !== filter.type) return false;
@@ -114,41 +122,53 @@ export function TasksClient({
   const TaskCard = ({
     task,
     showDate = false,
-    onStatusChange
+    onStatusChange,
   }: {
     task: Task & { assignedTo?: User | null };
     showDate?: boolean;
     onStatusChange: (status: "TODO" | "IN_PROGRESS" | "DONE") => void;
   }) => (
-    <div className="flex items-start space-x-3 rounded-lg border p-3">
-      <Checkbox
-        checked={task.status === "DONE"}
-        onCheckedChange={(checked) =>
-          onStatusChange(checked ? "DONE" : "TODO")
-        }
-      />
-      <div className="flex-1">
-        <div className="flex items-center space-x-2">
-          <span className={task.status === "DONE" ? "line-through text-zinc-500" : ""}>
-            {task.title}
-          </span>
-          <Badge variant="outline">{task.type}</Badge>
-          {task.assignedTo && (
-            <Badge variant="secondary">
-              <UserIcon className="h-3 w-3 mr-1" />
-              {task.assignedTo.name}
-            </Badge>
+    <div className="flex items-start justify-between gap-3 rounded-lg border p-3">
+      <div className="flex items-start space-x-3">
+        <Checkbox
+          checked={task.status === "DONE"}
+          onCheckedChange={(checked) =>
+            onStatusChange(checked ? "DONE" : "TODO")
+          }
+        />
+        <div className="flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={task.status === "DONE" ? "line-through text-zinc-500" : ""}>
+              {task.title}
+            </span>
+            <Badge variant="outline">{task.type}</Badge>
+            {task.assignedTo && (
+              <Badge variant="secondary">
+                <UserIcon className="h-3 w-3 mr-1" />
+                {task.assignedTo.name}
+              </Badge>
+            )}
+          </div>
+          {task.description && (
+            <p className="text-sm text-zinc-600 mt-1">{task.description}</p>
+          )}
+          {showDate && task.dueDate && (
+            <p className="text-xs text-zinc-500 mt-1">
+              Due: {format(task.dueDate, "MMM d, yyyy")}
+            </p>
           )}
         </div>
-        {task.description && (
-          <p className="text-sm text-zinc-600 mt-1">{task.description}</p>
-        )}
-        {showDate && task.dueDate && (
-          <p className="text-xs text-zinc-500 mt-1">
-            Due: {format(task.dueDate, "MMM d, yyyy")}
-          </p>
-        )}
       </div>
+      <TaskFormDialog
+        users={users}
+        task={task}
+        onSuccess={refreshTasks}
+        trigger={
+          <Button variant="ghost" size="sm" className="text-xs text-zinc-500 hover:text-zinc-900">
+            Edit
+          </Button>
+        }
+      />
     </div>
   );
 
@@ -194,7 +214,7 @@ export function TasksClient({
           <div className="flex items-center space-x-3">
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="sm" className="md:hidden">
+                <Button variant="ghost" size="sm" className="md:hidden text-on-surface">
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
@@ -223,7 +243,12 @@ export function TasksClient({
           </div>
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2 w-full sm:w-auto">
-              <Select value={filter.status} onValueChange={(value) => setFilter(prev => ({ ...prev, status: value as any }))}>
+              <Select
+                value={filter.status}
+                onValueChange={(value) =>
+                  setFilter(prev => ({ ...prev, status: value as TaskStatusFilter }))
+                }
+              >
                 <SelectTrigger className="w-full sm:w-32">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
@@ -235,7 +260,12 @@ export function TasksClient({
                 </SelectContent>
               </Select>
 
-              <Select value={filter.type} onValueChange={(value) => setFilter(prev => ({ ...prev, type: value as any }))}>
+              <Select
+                value={filter.type}
+                onValueChange={(value) =>
+                  setFilter(prev => ({ ...prev, type: value as TaskTypeFilter }))
+                }
+              >
                 <SelectTrigger className="w-full sm:w-32">
                   <SelectValue placeholder="Type" />
                 </SelectTrigger>
@@ -259,7 +289,7 @@ export function TasksClient({
                 </SelectContent>
               </Select>
             </div>
-            <CreateTaskModal users={users} onTaskCreated={refreshTasks} />
+            <TaskFormDialog users={users} onSuccess={refreshTasks} />
           </div>
         </header>
 
@@ -276,7 +306,7 @@ export function TasksClient({
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Calendar className="h-4 w-4" />
-                    <span>Today's Tasks</span>
+                    <span>Today&apos;s Tasks</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -305,7 +335,7 @@ export function TasksClient({
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Calendar className="h-4 w-4" />
-                    <span>This Week's Tasks</span>
+                    <span>This Week&apos;s Tasks</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

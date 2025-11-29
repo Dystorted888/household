@@ -81,7 +81,7 @@ export function DashboardClient({ initialData, users, onRefresh }: DashboardClie
           <div className="flex items-center space-x-3">
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="sm" className="md:hidden">
+                <Button variant="ghost" size="sm" className="md:hidden text-on-surface">
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>

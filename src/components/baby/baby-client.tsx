@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Baby, Plus, ShoppingCart, CheckSquare, Menu } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
-import { SECTIONS } from "@/lib/baby";
+import { BABY_SECTIONS } from "@/lib/baby/sections";
 import { CreateBabyItemModal } from "./create-baby-item-modal";
 import type { BabyChecklistItem, User } from "@prisma/client";
 
@@ -22,7 +22,7 @@ interface BabyClientProps {
 
 export function BabyClient({ initialItems }: BabyClientProps) {
   const [items, setItems] = useState(initialItems);
-  const [activeSection, setActiveSection] = useState<string>(SECTIONS[0]);
+  const [activeSection, setActiveSection] = useState<string>(BABY_SECTIONS[0]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const refreshItems = async () => {
@@ -107,7 +107,7 @@ export function BabyClient({ initialItems }: BabyClientProps) {
           <div className="flex items-center space-x-3">
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="sm" className="md:hidden">
+                <Button variant="ghost" size="sm" className="md:hidden text-on-surface">
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
@@ -144,7 +144,7 @@ export function BabyClient({ initialItems }: BabyClientProps) {
         <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6">
           <Tabs value={activeSection} onValueChange={setActiveSection} className="w-full">
             <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
-              {SECTIONS.map((section) => {
+              {BABY_SECTIONS.map((section) => {
                 const { total, completed } = getSectionStats(section);
                 return (
                   <TabsTrigger key={section} value={section} className="text-xs">
@@ -159,7 +159,7 @@ export function BabyClient({ initialItems }: BabyClientProps) {
               })}
             </TabsList>
 
-            {SECTIONS.map((section) => (
+            {BABY_SECTIONS.map((section) => (
               <TabsContent key={section} value={section} className="space-y-4">
                 <Card>
                   <CardHeader>
