@@ -18,7 +18,7 @@ import { EditBabyItemModal } from "./edit-baby-item-modal";
 import type { BabyChecklistItem, User } from "@prisma/client";
 
 interface BabyClientProps {
-  initialItems: (BabyChecklistItem & { assignedTo?: User })[];
+  initialItems: (BabyChecklistItem & { assignedTo?: User | null })[];
   users: User[];
 }
 
