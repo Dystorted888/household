@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ProtectedPage } from "@/components/protected-page";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, Plus, ChefHat, Menu } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, ChefHat, Menu, RefreshCw } from "lucide-react";
 import { format, formatDisplayDate } from "@/lib/dates";
 import Link from "next/link";
 
@@ -45,6 +45,41 @@ export function MealsClient({ initialMeals }: MealsClientProps) {
     notes: "",
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const refreshMeals = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      const response = await fetch(`/api/meals?offset=${mealsData.weekOffset}`);
+      if (response.ok) {
+        const data = await response.json();
+        setMealsData(data);
+      }
+    } catch (error) {
+      console.error("Failed to refresh meals:", error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [mealsData.weekOffset]);
+
+  // Auto-refresh on window focus
+  useEffect(() => {
+    const handleFocus = () => {
+      refreshMeals();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [refreshMeals]);
+
+  // Poll for updates every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshMeals();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [refreshMeals]);
 
   const navigateWeek = async (direction: "prev" | "next") => {
     const newOffset = mealsData.weekOffset + (direction === "next" ? 1 : -1);
@@ -87,8 +122,7 @@ export function MealsClient({ initialMeals }: MealsClientProps) {
       });
 
       if (response.ok) {
-        const updatedMeals = await fetch(`/api/meals?offset=${mealsData.weekOffset}`).then(r => r.json());
-        setMealsData(updatedMeals);
+        await refreshMeals();
         cancelEditing();
       }
     } catch (error) {
@@ -106,14 +140,8 @@ export function MealsClient({ initialMeals }: MealsClientProps) {
       });
 
       if (response.ok) {
-        setMealsData(prev => ({
-          ...prev,
-          weekMeals: prev.weekMeals.map(day =>
-            day.meal?.id === mealId
-              ? { ...day, meal: { ...day.meal!, status: newStatus } }
-              : day
-          ),
-        }));
+        // Refresh to get the latest data from server
+        await refreshMeals();
       }
     } catch (error) {
       console.error("Failed to update meal status:", error);
@@ -173,6 +201,16 @@ export function MealsClient({ initialMeals }: MealsClientProps) {
               </span>
               <Button variant="outline" size="sm" onClick={() => navigateWeek("next")}>
                 <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={refreshMeals}
+                disabled={isRefreshing}
+                className="ml-2"
+                title="Refresh meals"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               </Button>
             </div>
             <Button onClick={() => {/* Quick add meal */}} className="w-full sm:w-auto">
