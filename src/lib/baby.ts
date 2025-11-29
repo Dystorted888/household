@@ -6,19 +6,39 @@ import { BABY_SECTIONS } from "./baby/sections";
 export const SECTIONS = BABY_SECTIONS;
 
 export async function getBabyChecklistItems(householdId: string) {
-  return await prisma.babyChecklistItem.findMany({
-    where: { householdId },
-    include: {
-      assignedTo: true,
-      relatedTask: true,
-      relatedShoppingItem: true,
-    },
-    orderBy: [
-      { section: "asc" },
-      { dueDate: "asc" },
-      { createdAt: "asc" },
-    ],
-  });
+  try {
+    return await prisma.babyChecklistItem.findMany({
+      where: { householdId },
+      include: {
+        assignedTo: true,
+        relatedTask: true,
+        relatedShoppingItem: true,
+      },
+      orderBy: [
+        { section: "asc" },
+        { dueDate: "asc" },
+        { createdAt: "asc" },
+      ],
+    });
+  } catch (error: any) {
+    // If migration hasn't been run, try without assignedTo relation
+    if (error?.message?.includes("assignedToUserId") || error?.message?.includes("column")) {
+      console.warn("Baby items query failed, trying without assignedTo relation:", error?.message);
+      return await prisma.babyChecklistItem.findMany({
+        where: { householdId },
+        include: {
+          relatedTask: true,
+          relatedShoppingItem: true,
+        },
+        orderBy: [
+          { section: "asc" },
+          { dueDate: "asc" },
+          { createdAt: "asc" },
+        ],
+      });
+    }
+    throw error;
+  }
 }
 
 export async function createBabyChecklistItem(
