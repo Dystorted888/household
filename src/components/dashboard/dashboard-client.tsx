@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ProtectedPage } from "@/components/protected-page";
 import { useAuth } from "@/context/auth-context";
@@ -32,7 +32,7 @@ export function DashboardClient({ initialData, users, onRefresh }: DashboardClie
   const [data, setData] = useState(initialData);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const refreshData = async () => {
+  const refreshData = useCallback(async () => {
     try {
       const response = await fetch("/api/dashboard");
       if (response.ok) {
@@ -43,7 +43,26 @@ export function DashboardClient({ initialData, users, onRefresh }: DashboardClie
     } catch (error) {
       console.error("Failed to refresh dashboard:", error);
     }
-  };
+  }, [onRefresh]);
+
+  // Auto-refresh on window focus
+  useEffect(() => {
+    const handleFocus = () => {
+      refreshData();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [refreshData]);
+
+  // Poll for updates every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshData();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [refreshData]);
 
   const handleTaskToggle = async (taskId: string, completed: boolean) => {
     try {
@@ -54,15 +73,8 @@ export function DashboardClient({ initialData, users, onRefresh }: DashboardClie
       });
 
       if (response.ok) {
-        // Update local state
-        setData(prev => ({
-          ...prev,
-          todaysTasks: prev.todaysTasks.map(task =>
-            task.id === taskId
-              ? { ...task, status: completed ? "DONE" : "TODO" }
-              : task
-          )
-        }));
+        // Refresh full data to ensure consistency
+        await refreshData();
       }
     } catch (error) {
       console.error("Failed to update task:", error);

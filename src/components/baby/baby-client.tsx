@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ProtectedPage } from "@/components/protected-page";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,7 +25,7 @@ export function BabyClient({ initialItems }: BabyClientProps) {
   const [activeSection, setActiveSection] = useState<string>(BABY_SECTIONS[0]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const refreshItems = async () => {
+  const refreshItems = useCallback(async () => {
     try {
       const response = await fetch("/api/baby-items");
       if (response.ok) {
@@ -35,7 +35,26 @@ export function BabyClient({ initialItems }: BabyClientProps) {
     } catch (error) {
       console.error("Failed to refresh baby items:", error);
     }
-  };
+  }, []);
+
+  // Auto-refresh on window focus
+  useEffect(() => {
+    const handleFocus = () => {
+      refreshItems();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [refreshItems]);
+
+  // Poll for updates every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshItems();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [refreshItems]);
 
   const filteredItems = items.filter(item => item.section === activeSection);
 
@@ -51,9 +70,8 @@ export function BabyClient({ initialItems }: BabyClientProps) {
       });
 
       if (response.ok) {
-        setItems(prev => prev.map(item =>
-          item.id === itemId ? { ...item, status } : item
-        ));
+        // Refresh full data to ensure consistency
+        await refreshItems();
       }
     } catch (error) {
       console.error("Failed to update baby item:", error);

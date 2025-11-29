@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ProtectedPage } from "@/components/protected-page";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,7 +49,7 @@ export function ShoppingClient({ initialLists, initialItems, activeListId }: Sho
     return true;
   });
 
-  const loadList = async (listId: string) => {
+  const loadList = useCallback(async (listId: string) => {
     try {
       const response = await fetch(`/api/shopping-lists/${listId}/items`);
       if (response.ok) {
@@ -60,9 +60,9 @@ export function ShoppingClient({ initialLists, initialItems, activeListId }: Sho
     } catch (error) {
       console.error("Failed to load list:", error);
     }
-  };
+  }, []);
 
-  const refreshLists = async () => {
+  const refreshLists = useCallback(async () => {
     try {
       const response = await fetch("/api/shopping-lists");
       if (response.ok) {
@@ -72,7 +72,34 @@ export function ShoppingClient({ initialLists, initialItems, activeListId }: Sho
     } catch (error) {
       console.error("Failed to refresh lists:", error);
     }
-  };
+  }, []);
+
+  // Combined refresh function for auto-refresh
+  const refreshShoppingData = useCallback(async () => {
+    await refreshLists();
+    if (activeList) {
+      await loadList(activeList);
+    }
+  }, [refreshLists, loadList, activeList]);
+
+  // Auto-refresh on window focus
+  useEffect(() => {
+    const handleFocus = () => {
+      refreshShoppingData();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [refreshShoppingData]);
+
+  // Poll for updates every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshShoppingData();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [refreshShoppingData]);
 
   const handleListCreated = async (listId: string) => {
     await refreshLists();
@@ -95,8 +122,10 @@ export function ShoppingClient({ initialLists, initialItems, activeListId }: Sho
       });
 
       if (response.ok) {
-        const item = await response.json();
-        setItems(prev => [item, ...prev]);
+        // Refresh to get latest data
+        if (activeList) {
+          await loadList(activeList);
+        }
         setNewItem({ name: "", quantity: "", category: "", priority: "MEDIUM" });
       }
     } catch (error) {
@@ -113,9 +142,10 @@ export function ShoppingClient({ initialLists, initialItems, activeListId }: Sho
       });
 
       if (response.ok) {
-        setItems(prev => prev.map(item =>
-          item.id === itemId ? { ...item, isBought, boughtAt: isBought ? new Date() : null } : item
-        ));
+        // Refresh to get latest data
+        if (activeList) {
+          await loadList(activeList);
+        }
       }
     } catch (error) {
       console.error("Failed to update item:", error);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ProtectedPage } from "@/components/protected-page";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,7 +47,7 @@ export function TasksClient({
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const refreshTasks = async () => {
+  const refreshTasks = useCallback(async () => {
     try {
       const [todayRes, weekRes, recurringRes] = await Promise.all([
         fetch("/api/tasks?filter=today"),
@@ -70,7 +70,26 @@ export function TasksClient({
     } catch (error) {
       console.error("Failed to refresh tasks:", error);
     }
-  };
+  }, []);
+
+  // Auto-refresh on window focus
+  useEffect(() => {
+    const handleFocus = () => {
+      refreshTasks();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [refreshTasks]);
+
+  // Poll for updates every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshTasks();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [refreshTasks]);
 
   const filterTasks = (tasks: TaskWithUser[]) => {
     return tasks.filter(task => {
@@ -90,13 +109,8 @@ export function TasksClient({
       });
 
       if (response.ok) {
-        // Update local state
-        setTodayTasks(prev => prev.map(task =>
-          task.id === taskId ? { ...task, status } : task
-        ));
-        setWeekTasks(prev => prev.map(task =>
-          task.id === taskId ? { ...task, status } : task
-        ));
+        // Refresh full data to ensure consistency
+        await refreshTasks();
       }
     } catch (error) {
       console.error("Failed to update task:", error);
