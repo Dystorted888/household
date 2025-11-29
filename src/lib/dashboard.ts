@@ -111,8 +111,85 @@ export async function getDashboardData(householdId: string) {
 }
 
 export async function getUsers(householdId: string) {
-  return await prisma.user.findMany({
+  // First, check if users exist for this household
+  const existingUsers = await prisma.user.findMany({
     where: { householdId },
     orderBy: { name: "asc" },
   });
+
+  // If no users exist, create Husband and Wife
+  if (existingUsers.length === 0) {
+    const { UserRole } = await import("@prisma/client");
+    
+    // Create Husband and Wife users
+    const [husband, wife] = await Promise.all([
+      prisma.user.create({
+        data: {
+          name: "Husband",
+          email: `husband-${householdId}@example.local`,
+          role: UserRole.ADMIN,
+          profile: "Husband",
+          householdId: householdId,
+          color: "#2563eb",
+        },
+      }),
+      prisma.user.create({
+        data: {
+          name: "Wife",
+          email: `wife-${householdId}@example.local`,
+          role: UserRole.MEMBER,
+          profile: "Wife",
+          householdId: householdId,
+          color: "#db2777",
+        },
+      }),
+    ]);
+
+    return [husband, wife].sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  // If users exist but we're missing Husband or Wife, create the missing one(s)
+  const hasHusband = existingUsers.some(u => u.profile === "Husband" || u.name === "Husband");
+  const hasWife = existingUsers.some(u => u.profile === "Wife" || u.name === "Wife");
+
+  if (!hasHusband || !hasWife) {
+    const { UserRole } = await import("@prisma/client");
+    const usersToCreate = [];
+
+    if (!hasHusband) {
+      usersToCreate.push(
+        prisma.user.create({
+          data: {
+            name: "Husband",
+            email: `husband-${householdId}@example.local`,
+            role: UserRole.ADMIN,
+            profile: "Husband",
+            householdId: householdId,
+            color: "#2563eb",
+          },
+        })
+      );
+    }
+
+    if (!hasWife) {
+      usersToCreate.push(
+        prisma.user.create({
+          data: {
+            name: "Wife",
+            email: `wife-${householdId}@example.local`,
+            role: UserRole.MEMBER,
+            profile: "Wife",
+            householdId: householdId,
+            color: "#db2777",
+          },
+        })
+      );
+    }
+
+    const newUsers = await Promise.all(usersToCreate);
+    const allUsers = [...existingUsers, ...newUsers];
+    return allUsers.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  return existingUsers;
 }
