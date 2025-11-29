@@ -6,6 +6,7 @@ import { BABY_SECTIONS } from "./baby/sections";
 export const SECTIONS = BABY_SECTIONS;
 
 export async function getBabyChecklistItems(householdId: string) {
+  // First try with assignedTo relation (if migration has been run)
   try {
     return await prisma.babyChecklistItem.findMany({
       where: { householdId },
@@ -21,14 +22,40 @@ export async function getBabyChecklistItems(householdId: string) {
       ],
     });
   } catch (error: any) {
-    // If migration hasn't been run, try without assignedTo relation
-    if (error?.message?.includes("assignedToUserId") || error?.message?.includes("column")) {
-      console.warn("Baby items query failed, trying without assignedTo relation:", error?.message);
-      return await prisma.babyChecklistItem.findMany({
+    // If migration hasn't been run, the assignedToUserId column won't exist
+    // Query without the assignedTo relation
+    const errorMessage = error?.message || "";
+    if (errorMessage.includes("assignedToUserId") || errorMessage.includes("column") || errorMessage.includes("does not exist")) {
+      console.warn("Migration not run yet, querying baby items without assignedTo relation");
+      // Query without assignedTo - use select to explicitly avoid it
+      const items = await prisma.babyChecklistItem.findMany({
         where: { householdId },
-        include: {
-          relatedTask: true,
-          relatedShoppingItem: true,
+        select: {
+          id: true,
+          householdId: true,
+          section: true,
+          title: true,
+          itemType: true,
+          status: true,
+          dueDate: true,
+          createdAt: true,
+          completedAt: true,
+          relatedTaskId: true,
+          relatedShoppingItemId: true,
+          relatedTask: {
+            select: {
+              id: true,
+              title: true,
+              status: true,
+            },
+          },
+          relatedShoppingItem: {
+            select: {
+              id: true,
+              name: true,
+              isBought: true,
+            },
+          },
         },
         orderBy: [
           { section: "asc" },
@@ -36,7 +63,14 @@ export async function getBabyChecklistItems(householdId: string) {
           { createdAt: "asc" },
         ],
       });
+      // Map items to match expected shape (without assignedTo)
+      return items.map(item => ({
+        ...item,
+        assignedTo: null,
+        assignedToUserId: null,
+      }));
     }
+    // If it's a different error, rethrow it
     throw error;
   }
 }
