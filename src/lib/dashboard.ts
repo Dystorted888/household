@@ -73,7 +73,7 @@ export async function getDashboardData(householdId: string) {
   );
 
   // Baby preparation progress
-  let babyItems;
+  let babyItems: any[] = [];
   try {
     babyItems = await prisma.babyChecklistItem.findMany({
       where: { householdId },
@@ -81,8 +81,8 @@ export async function getDashboardData(householdId: string) {
     });
   } catch (error: any) {
     // If migration hasn't been run, the assignedToUserId column might not exist
-    // Fall back to querying without that relation
-    console.error("Error fetching baby items, trying fallback:", error?.message);
+    // Fall back to empty array
+    console.error("Error fetching baby items:", error?.message);
     babyItems = [];
   }
 
