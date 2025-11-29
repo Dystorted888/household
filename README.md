@@ -46,11 +46,11 @@ docker-compose up -d
 
 ### 3. Environment Variables
 
-Create a `.env.local` file in the root directory:
+1. Copy `env.local.example` to `.env.local`.
+2. Update the connection string if your local database differs from the default `postgresql://postgres:postgres@localhost:5433/household?schema=public`.
+3. (Optional) If you already have data tied to a specific household ID, set `HOUSEHOLD_ID` to that value so the app loads the existing records instead of creating a new default household.
 
-```env
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/household?schema=public"
-```
+If `DATABASE_URL` isn't set when running the dev server, the app automatically falls back to `LOCAL_DATABASE_URL` (which defaults to the same localhost Postgres connection) so production settings remain untouched.
 
 ### 4. Database Setup
 

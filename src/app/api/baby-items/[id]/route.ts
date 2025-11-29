@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateBabyItemStatus } from "@/lib/baby";
+import { updateBabyItemStatus, updateBabyChecklistItem } from "@/lib/baby";
 import { getHouseholdId } from "@/lib/household";
+import { BabyItemType, BabyItemStatus } from "@prisma/client";
 
 export async function PATCH(
   request: NextRequest,
@@ -9,20 +10,32 @@ export async function PATCH(
   try {
     const resolvedParams = await params;
     const householdId = await getHouseholdId();
-    const { status } = await request.json();
+    const body = await request.json();
 
-    // Verify the item belongs to this household
-    const item = await import("@/lib/prisma").then(({ prisma }) =>
-      prisma.babyChecklistItem.findFirst({
-        where: { id: resolvedParams.id, householdId },
-      })
-    );
-
-    if (!item) {
-      return NextResponse.json({ error: "Baby item not found" }, { status: 404 });
+    // If only status is being updated, use the simple function
+    if (body.status && Object.keys(body).length === 1) {
+      const updatedItem = await updateBabyItemStatus(resolvedParams.id, body.status);
+      return NextResponse.json(updatedItem);
     }
 
-    const updatedItem = await updateBabyItemStatus(resolvedParams.id, status);
+    // Otherwise, do a full update
+    const updateData: {
+      title?: string;
+      section?: string;
+      itemType?: BabyItemType;
+      dueDate?: Date | null;
+      assignedToUserId?: string | null;
+      status?: BabyItemStatus;
+    } = {};
+
+    if (body.title !== undefined) updateData.title = body.title;
+    if (body.section !== undefined) updateData.section = body.section;
+    if (body.itemType !== undefined) updateData.itemType = body.itemType as BabyItemType;
+    if (body.dueDate !== undefined) updateData.dueDate = body.dueDate ? new Date(body.dueDate) : null;
+    if (body.assignedToUserId !== undefined) updateData.assignedToUserId = body.assignedToUserId || null;
+    if (body.status !== undefined) updateData.status = body.status as BabyItemStatus;
+
+    const updatedItem = await updateBabyChecklistItem(resolvedParams.id, householdId, updateData);
     return NextResponse.json(updatedItem);
   } catch (error) {
     console.error("Error updating baby item:", error);

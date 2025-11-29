@@ -1,21 +1,15 @@
+import "server-only";
 import { prisma } from "./prisma";
 import { BabyItemType, BabyItemStatus } from "@prisma/client";
+import { BABY_SECTIONS } from "./baby/sections";
 
-const SECTIONS = [
-  "Room",
-  "Health",
-  "Transport",
-  "Hygiene",
-  "Admin",
-  "Organization"
-] as const;
-
-export { SECTIONS };
+export const SECTIONS = BABY_SECTIONS;
 
 export async function getBabyChecklistItems(householdId: string) {
   return await prisma.babyChecklistItem.findMany({
     where: { householdId },
     include: {
+      assignedTo: true,
       relatedTask: true,
       relatedShoppingItem: true,
     },
@@ -32,7 +26,8 @@ export async function createBabyChecklistItem(
   section: string,
   title: string,
   itemType: BabyItemType,
-  dueDate?: Date
+  dueDate?: Date,
+  assignedToUserId?: string | null
 ) {
   return await prisma.babyChecklistItem.create({
     data: {
@@ -41,6 +36,39 @@ export async function createBabyChecklistItem(
       title,
       itemType,
       dueDate,
+      assignedToUserId: assignedToUserId || null,
+    },
+  });
+}
+
+export async function updateBabyChecklistItem(
+  itemId: string,
+  householdId: string,
+  data: {
+    title?: string;
+    section?: string;
+    itemType?: BabyItemType;
+    dueDate?: Date | null;
+    assignedToUserId?: string | null;
+    status?: BabyItemStatus;
+  }
+) {
+  // Verify the item belongs to this household
+  const existing = await prisma.babyChecklistItem.findFirst({
+    where: { id: itemId, householdId },
+  });
+
+  if (!existing) {
+    throw new Error("Baby item not found");
+  }
+
+  return await prisma.babyChecklistItem.update({
+    where: { id: itemId },
+    data,
+    include: {
+      assignedTo: true,
+      relatedTask: true,
+      relatedShoppingItem: true,
     },
   });
 }
@@ -57,6 +85,9 @@ export async function updateBabyItemStatus(
   return await prisma.babyChecklistItem.update({
     where: { id: itemId },
     data,
+    include: {
+      assignedTo: true,
+    },
   });
 }
 

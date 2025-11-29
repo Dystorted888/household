@@ -9,18 +9,20 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Baby, Plus, ShoppingCart, CheckSquare, Menu } from "lucide-react";
+import { Baby, Plus, ShoppingCart, CheckSquare, Menu, PencilLine } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
 import { BABY_SECTIONS } from "@/lib/baby/sections";
 import { CreateBabyItemModal } from "./create-baby-item-modal";
+import { EditBabyItemModal } from "./edit-baby-item-modal";
 import type { BabyChecklistItem, User } from "@prisma/client";
 
 interface BabyClientProps {
   initialItems: (BabyChecklistItem & { assignedTo?: User })[];
+  users: User[];
 }
 
-export function BabyClient({ initialItems }: BabyClientProps) {
+export function BabyClient({ initialItems, users }: BabyClientProps) {
   const [items, setItems] = useState(initialItems);
   const [activeSection, setActiveSection] = useState<string>(BABY_SECTIONS[0]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -156,7 +158,7 @@ export function BabyClient({ initialItems }: BabyClientProps) {
               </p>
             </div>
           </div>
-          <CreateBabyItemModal onItemCreated={refreshItems} />
+          <CreateBabyItemModal onItemCreated={refreshItems} users={users} />
         </header>
 
         <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6">
@@ -215,6 +217,17 @@ export function BabyClient({ initialItems }: BabyClientProps) {
                                   )}
                                 </div>
                                 <div className="flex space-x-2">
+                                  <EditBabyItemModal
+                                    users={users}
+                                    item={item}
+                                    onSuccess={refreshItems}
+                                    trigger={
+                                      <Button size="sm" variant="ghost">
+                                        <PencilLine className="h-3 w-3 mr-1" />
+                                        Edit
+                                      </Button>
+                                    }
+                                  />
                                   {item.itemType === "PURCHASE" && (
                                     <Button
                                       size="sm"

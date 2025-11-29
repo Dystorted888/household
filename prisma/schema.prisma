@@ -81,6 +81,7 @@ model User {
 
   assignedTasks      Task[]          @relation("AssignedTasks")
   assignedRecurring  RecurringTask[] @relation("AssignedRecurringTasks")
+  assignedBabyItems  BabyChecklistItem[] @relation("AssignedBabyItems")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -175,6 +176,8 @@ model BabyChecklistItem {
   section     String
   title       String
   itemType    BabyItemType
+  assignedToUserId String?
+  assignedTo  User?           @relation("AssignedBabyItems", fields: [assignedToUserId], references: [id])
   relatedTaskId String?
   relatedTask   Task?           @relation("BabyItemTaskLink", fields: [relatedTaskId], references: [id])
   relatedShoppingItemId String?

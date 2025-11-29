@@ -4,12 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "npm run prisma:generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:generate": "prisma generate",
-    "prisma:seed": "prisma db seed"
+    "prisma:migrate": "dotenv -e .env.local -- prisma migrate dev",
+    "prisma:generate": "dotenv -e .env.local -- prisma generate",
+    "prisma:seed": "dotenv -e .env.local -- prisma db seed"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
@@ -37,6 +37,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",
+    "dotenv-cli": "^11.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.0.4",
     "prisma": "^5.19.0",

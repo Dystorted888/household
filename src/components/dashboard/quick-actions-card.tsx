@@ -14,7 +14,7 @@ import {
   CheckSquare,
   Baby
 } from "lucide-react";
-import { SECTIONS } from "@/lib/baby";
+import { BABY_SECTIONS } from "@/lib/baby/sections";
 import type { User } from "@prisma/client";
 
 interface QuickActionsCardProps {
@@ -31,7 +31,7 @@ export function QuickActionsCard({ users, onItemAdded }: QuickActionsCardProps) 
   const [mealData, setMealData] = useState({ label: "", notes: "" });
   const [taskData, setTaskData] = useState({ title: "", description: "", type: "GENERIC", assignedToUserId: "" });
   const [shoppingData, setShoppingData] = useState({ name: "", quantity: "", category: "", priority: "MEDIUM" });
-  const [babyData, setBabyData] = useState({ title: "", section: SECTIONS[0] as string, itemType: "TASK" });
+  const [babyData, setBabyData] = useState({ title: "", section: BABY_SECTIONS[0] as string, itemType: "TASK" });
 
   const addMeal = async () => {
     if (!mealData.label.trim()) return;
@@ -133,7 +133,7 @@ export function QuickActionsCard({ users, onItemAdded }: QuickActionsCardProps) 
       });
       if (response.ok) {
         setBabyDialogOpen(false);
-        setBabyData({ title: "", section: SECTIONS[0], itemType: "TASK" });
+        setBabyData({ title: "", section: BABY_SECTIONS[0], itemType: "TASK" });
         onItemAdded();
       }
     } catch (error) {
@@ -312,7 +312,7 @@ export function QuickActionsCard({ users, onItemAdded }: QuickActionsCardProps) 
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {SECTIONS.map(section => (
+                          {BABY_SECTIONS.map(section => (
                         <SelectItem key={section} value={section}>{section}</SelectItem>
                       ))}
                     </SelectContent>

@@ -16,9 +16,16 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const householdId = await getHouseholdId();
-    const { title, section, itemType, dueDate } = await request.json();
+    const { title, section, itemType, dueDate, assignedToUserId } = await request.json();
 
-    const item = await createBabyChecklistItem(householdId, section, title, itemType, dueDate ? new Date(dueDate) : undefined);
+    const item = await createBabyChecklistItem(
+      householdId, 
+      section, 
+      title, 
+      itemType, 
+      dueDate ? new Date(dueDate) : undefined,
+      assignedToUserId || null
+    );
     return NextResponse.json(item);
   } catch (error) {
     console.error("Error creating baby item:", error);
